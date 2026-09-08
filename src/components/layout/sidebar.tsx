@@ -14,13 +14,11 @@ import {
   BarChart3,
   ShieldCheck,
   Settings,
-  LogOut,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/layout/logo";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 export interface NavItem {
   title: string;
@@ -119,13 +117,13 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-border/80 bg-card transition-all duration-300 select-none z-30",
+        "relative flex flex-col border-r border-border/80 bg-card transition-all duration-300 select-none z-30 h-full",
         isCollapsed ? "w-20" : "w-64",
         className
       )}
     >
       {/* Header / Logo */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-border/60">
+      <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-border/60">
         <Logo collapsed={isCollapsed} size="sm" />
         {onToggleCollapse && (
           <button
@@ -185,40 +183,6 @@ export function Sidebar({
             </Link>
           );
         })}
-      </div>
-
-      {/* Footer / User Profile & Controls */}
-      <div className="border-t border-border/60 p-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          {!isCollapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-foreground">
-                {userName}
-              </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {userRole}
-                </span>
-              </div>
-            </div>
-          )}
-          <ThemeToggle />
-        </div>
-
-        <form action="/api/auth/logout" method="POST">
-          <button
-            type="submit"
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors",
-              isCollapsed && "justify-center"
-            )}
-            title="Keluar / Logout"
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!isCollapsed && <span>Keluar</span>}
-          </button>
-        </form>
       </div>
     </aside>
   );

@@ -22,9 +22,9 @@ export function AppShell({
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground antialiased selection:bg-primary/20">
+    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground antialiased selection:bg-primary/20">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex shrink-0">
+      <div className="hidden md:flex h-full shrink-0">
         <Sidebar
           userRole={userRole}
           userName={userName}
@@ -41,11 +41,11 @@ export function AppShell({
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div className="relative z-50 flex w-72 flex-col bg-card shadow-2xl">
+          <div className="relative z-50 flex h-full w-72 flex-col bg-card shadow-2xl">
             <button
               type="button"
               onClick={() => setIsMobileOpen(false)}
-              className="absolute right-3 top-4 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="absolute right-3 top-4 z-10 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label="Tutup menu"
             >
               <X className="h-5 w-5" />
@@ -62,14 +62,17 @@ export function AppShell({
       )}
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-x-hidden min-w-0">
+      <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
         <Navbar
           userName={userName}
           userRole={userRole}
+          userEmail={userEmail}
           onOpenMobileMenu={() => setIsMobileOpen(true)}
         />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
+        <main className="flex-1 overflow-y-auto min-h-0 w-full">
+          <div className="p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-h-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

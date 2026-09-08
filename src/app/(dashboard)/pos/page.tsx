@@ -245,18 +245,18 @@ export default function PosPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-6.5rem)] min-h-[600px]">
+    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100dvh-6.5rem)] md:h-[calc(100vh-7.5rem)] lg:h-[calc(100vh-8.25rem)] min-h-[500px]">
       {/* LEFT AREA: Product Catalog */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Top filter row */}
-        <div className="space-y-3 pb-3 shrink-0">
+        <div className="space-y-3 pt-1 pb-3 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Cari menu kopi, non-kopi, makanan, dessert..."
-                className="pl-9 bg-card h-9 text-sm"
+                className="pl-10 pr-9 bg-card h-10 text-sm rounded-xl border border-border/80 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary shadow-2xs transition-all"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -264,7 +264,8 @@ export default function PosPage() {
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+                  aria-label="Hapus pencarian"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -276,7 +277,7 @@ export default function PosPage() {
               type="button"
               variant="outline"
               onClick={() => setIsMobileCartOpen(true)}
-              className="lg:hidden relative gap-2 shrink-0 h-9"
+              className="lg:hidden relative gap-2 shrink-0 h-10 rounded-xl"
             >
               <ShoppingCart className="h-4 w-4" />
               <span>Keranjang</span>
