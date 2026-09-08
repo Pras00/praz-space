@@ -17,7 +17,7 @@ const PUBLIC_PATHS = [
 const OWNER_ONLY_PATHS = ["/users", "/settings"];
 const MANAGEMENT_PATHS = ["/dashboard", "/reports", "/products", "/categories", "/transactions"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static Next.js assets
