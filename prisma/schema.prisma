@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  CASHIER
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PAID
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SETTLEMENT
+  EXPIRE
+  CANCEL
+  DENY
+  REFUND
+}
+
+enum PaymentMethod {
+  QRIS
+  GOPAY
+  SHOPEEPAY
+  BANK_TRANSFER
+  CREDIT_CARD
+  CASH
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(CASHIER)
+  isActive     Boolean    @default(true)
+  orders       Order[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  isActive  Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  price       Decimal     @db.Decimal(12, 2)
+  imageUrl    String?
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  isActive    Boolean     @default(true)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone])
+}
+
+model Order {
+  id          String        @id @default(cuid())
+  orderNumber String        @unique
+  customerId  String?
+  customer    Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  cashierId   String
+  cashier     User          @relation(fields: [cashierId], references: [id], onDelete: Restrict)
+  status      OrderStatus   @default(DRAFT)
+  subtotal    Decimal       @default(0) @db.Decimal(12, 2)
+  discount    Decimal       @default(0) @db.Decimal(12, 2)
+  tax         Decimal       @default(0) @db.Decimal(12, 2)
+  total       Decimal       @default(0) @db.Decimal(12, 2)
+  items       OrderItem[]
+  payments    Payment[]
+  transaction Transaction?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([orderNumber])
+  @@index([status])
+  @@index([cashierId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id                  String   @id @default(cuid())
+  orderId             String
+  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId           String
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productNameSnapshot String
+  unitPrice           Decimal  @db.Decimal(12, 2)
+  quantity            Int
+  subtotal            Decimal  @db.Decimal(12, 2)
+  createdAt           DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  orderId               String
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider              String        @default("MIDTRANS")
+  providerTransactionId String?       @unique
+  paymentMethod         PaymentMethod @default(QRIS)
+  amount                Decimal       @db.Decimal(12, 2)
+  status                PaymentStatus @default(PENDING)
+  rawResponse           Json?
+  transaction           Transaction?
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([providerTransactionId])
+}
+
+model Transaction {
+  id                String        @id @default(cuid())
+  transactionNumber String        @unique
+  orderId           String        @unique
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  paymentId         String?       @unique
+  payment           Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  amount            Decimal       @db.Decimal(12, 2)
+  paymentMethod     PaymentMethod
+  status            String        @default("SUCCESS")
+  paidAt            DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+
+  @@index([transactionNumber])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
