@@ -3,7 +3,7 @@ import { signSessionToken, verifySessionToken, type SessionPayload } from "./jwt
 
 export const SESSION_COOKIE_NAME = "praz_space_session";
 
-export async function setSessionCookie(payload: SessionPayload) {
+export async function setSessionCookie(payload: SessionPayload): Promise<string> {
   const token = await signSessionToken(payload);
   const cookieStore = await cookies();
 
@@ -14,6 +14,8 @@ export async function setSessionCookie(payload: SessionPayload) {
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });
+
+  return token;
 }
 
 export async function getSession(): Promise<SessionPayload | null> {

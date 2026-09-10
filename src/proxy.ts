@@ -24,9 +24,30 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
-    pathname.startsWith("/icons") ||
-    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path))
+    pathname.startsWith("/icons")
   ) {
+    return NextResponse.next();
+  }
+
+  // If already authenticated and trying to access /login, redirect directly to dashboard or pos
+  if (pathname === "/login") {
+    const token = request.cookies.get("praz_space_session")?.value;
+    if (token) {
+      try {
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        const role = (payload.role as string) || "CASHIER";
+        return NextResponse.redirect(
+          new URL(role === "CASHIER" ? "/pos" : "/dashboard", request.url)
+        );
+      } catch {
+        // Token invalid, allow accessing login page
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Public API paths
+  if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path))) {
     return NextResponse.next();
   }
 

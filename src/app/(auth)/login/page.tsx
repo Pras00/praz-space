@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/dashboard";
 
@@ -37,15 +36,17 @@ function LoginForm() {
         throw new Error(data.message || "Gagal masuk. Periksa email dan kata sandi.");
       }
 
-      if (data.user?.role === "CASHIER") {
-        router.push("/pos");
-      } else {
-        router.push(from === "/login" ? "/dashboard" : from);
+      let targetUrl = data.user?.role === "CASHIER" ? "/pos" : from;
+      if (!targetUrl || targetUrl === "/login" || targetUrl.startsWith("/login")) {
+        targetUrl = data.user?.role === "CASHIER" ? "/pos" : "/dashboard";
       }
-      router.refresh();
+
+      // Gunakan window.location.replace untuk navigasi dokumen penuh.
+      // Menghilangkan race condition router.push + router.refresh
+      // dan menjamin cookie sesi terkirim pada permintaan pertama.
+      window.location.replace(targetUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan pada sistem.");
-    } finally {
       setIsLoading(false);
     }
   }

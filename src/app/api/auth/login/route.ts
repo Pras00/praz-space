@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validations/auth";
 import { prisma } from "@/lib/db/prisma";
 import { verifyPassword } from "@/lib/auth/password";
-import { setSessionCookie } from "@/lib/auth/session";
+import { setSessionCookie, SESSION_COOKIE_NAME } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     // Set secure HTTP-only cookie with JWT
-    await setSessionCookie({
+    const token = await setSessionCookie({
       userId: user.id,
       name: user.name,
       email: user.email,
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       console.warn("Failed to create login audit log:", auditError);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "Berhasil masuk",
       user: {
         id: user.id,
@@ -84,6 +84,17 @@ export async function POST(request: Request) {
         role: user.role,
       },
     });
+
+    // Ensure Set-Cookie header is explicitly populated on the outgoing response
+    response.cookies.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    return response;
   } catch (error) {
     console.error("Login route error:", error);
     return NextResponse.json(

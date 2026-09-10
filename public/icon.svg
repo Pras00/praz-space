@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <linearGradient id="prazGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b5e4b" />
+      <stop offset="100%" stop-color="#0e342a" />
+    </linearGradient>
+  </defs>
+  <!-- Background Badge with Rounded Corners -->
+  <rect width="64" height="64" rx="15" fill="url(#prazGrad)" />
+  <!-- Subtle Glowing Emerald Inner Border -->
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="14.25" fill="none" stroke="#34d399" stroke-width="1.5" stroke-opacity="0.4" />
+
+  <!-- Orbital Curved Ring -->
+  <circle
+    cx="32"
+    cy="32"
+    r="23"
+    stroke="#ffffff"
+    stroke-width="2.5"
+    stroke-dasharray="6 3.5"
+    opacity="0.42"
+  />
+
+  <!-- Stem of P -->
+  <path
+    d="M22 15V49"
+    stroke="#ffffff"
+    stroke-width="5"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Bowl of P with Coffee Bean Curve -->
+  <path
+    d="M22 16H35C39.97 16 44 20.03 44 25C44 29.97 39.97 34 35 34H22"
+    stroke="#ffffff"
+    stroke-width="5"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Coffee Aroma / Center Dot -->
+  <circle cx="33" cy="25" r="3" fill="#ffffff" />
+</svg>

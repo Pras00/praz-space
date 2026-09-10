@@ -37,7 +37,11 @@ export const metadata: Metadata = {
   description:
     "Production-grade Point of Sale (POS) and cafe management system designed for fast cashier operations and high data integrity.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
 };
 
