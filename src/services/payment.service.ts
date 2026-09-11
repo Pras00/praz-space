@@ -7,6 +7,7 @@ import {
   type MidtransNotificationPayload,
 } from "@/lib/payments/midtrans";
 import { OrderStatus, PaymentStatus, PaymentMethod, Prisma } from "@prisma/client";
+import { invalidateDashboardCache } from "@/services/report.service";
 
 function mapMidtransPaymentType(paymentType: string): PaymentMethod {
   switch (paymentType?.toLowerCase()) {
@@ -193,6 +194,7 @@ export async function processCashPayment(orderId: string, cashReceived: number) 
     })
     .catch((err) => console.warn("Failed to create cash payment audit log:", err));
 
+  invalidateDashboardCache();
   return result;
 }
 
@@ -326,6 +328,7 @@ export async function handleMidtransNotification(
       }
     );
 
+    invalidateDashboardCache();
     return { status: "SUCCESS", message: `Pesanan ${order_id} berhasil diverifikasi dan lunas.` };
   } else if (transaction_status === "expire") {
     // Payment Expired
@@ -448,5 +451,6 @@ export async function simulateDevPaymentSuccess(orderId: string) {
     })
     .catch((err) => console.warn("Failed to create simulation audit log:", err));
 
+  invalidateDashboardCache();
   return result;
 }

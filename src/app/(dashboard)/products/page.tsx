@@ -14,6 +14,7 @@ import {
   Tag,
   Coffee,
   Archive,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
 interface ProductItem {
   id: string;
@@ -64,8 +65,10 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = React.useState("all");
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all");
 
-  async function loadData() {
-    setIsLoading(true);
+  async function loadData(showSpinner = true) {
+    if (showSpinner) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       // 1. Fetch categories
@@ -87,6 +90,19 @@ export default function ProductsPage() {
       if (!prodRes.ok) throw new Error(prodData.message || "Gagal memuat produk.");
 
       setProducts(prodData.products);
+
+      // Cache default view for 0ms instant display next time
+      if (!search.trim() && selectedCategory === "all" && statusFilter === "all" && typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "praz_products_admin_cache",
+            JSON.stringify({
+              categories: catData.categories || [],
+              products: prodData.products || [],
+            })
+          );
+        } catch (_) {}
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
     } finally {
@@ -95,8 +111,25 @@ export default function ProductsPage() {
   }
 
   React.useEffect(() => {
+    // Check initial instant cache on first load if filters are default
+    let hasInstantCache = false;
+    if (!search.trim() && selectedCategory === "all" && statusFilter === "all" && typeof window !== "undefined") {
+      try {
+        const cachedRaw = sessionStorage.getItem("praz_products_admin_cache");
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (parsed.categories?.length && parsed.products?.length) {
+            setCategories(parsed.categories);
+            setProducts(parsed.products);
+            setIsLoading(false);
+            hasInstantCache = true;
+          }
+        }
+      } catch (_) {}
+    }
+
     const timer = setTimeout(() => {
-      loadData();
+      loadData(!hasInstantCache);
     }, 250);
     return () => clearTimeout(timer);
   }, [search, selectedCategory, statusFilter]);
@@ -114,7 +147,7 @@ export default function ProductsPage() {
         throw new Error(data.message || "Gagal mengubah ketersediaan.");
       }
 
-      await loadData();
+      await loadData(false);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal mengubah status ketersediaan.");
     }
@@ -134,12 +167,24 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        <Link href="/products/new">
-          <Button className="gap-2 shadow-sm">
-            <Plus className="h-4 w-4" />
-            Tambah Menu Baru
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => loadData(true)}
+            className="h-10 w-10 shrink-0 rounded-xl"
+            title="Segarkan Data Menu"
+          >
+            <RotateCcw className={cn("h-4 w-4", isLoading && "animate-spin text-primary")} />
           </Button>
-        </Link>
+
+          <Link href="/products/new">
+            <Button className="gap-2 shadow-sm">
+              <Plus className="h-4 w-4" />
+              Tambah Menu Baru
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

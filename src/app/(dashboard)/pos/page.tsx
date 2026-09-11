@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
 
 interface CategoryItem {
   id: string;
@@ -90,9 +90,11 @@ export default function PosPage() {
   const [completedTx, setCompletedTx] = React.useState<CompletedTransactionInfo | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = React.useState(false);
 
-  // Load Products & Categories
-  async function loadData() {
-    setIsLoading(true);
+  // Load Products & Categories (with Instant Cache & Background Revalidation)
+  async function loadData(showSpinner = true) {
+    if (showSpinner) {
+      setIsLoading(true);
+    }
     try {
       const [catRes, prodRes] = await Promise.all([
         fetch("/api/categories?active=true"),
@@ -108,6 +110,20 @@ export default function PosPage() {
       if (prodRes.ok && prodData.products) {
         setProducts(prodData.products);
       }
+
+      // Save to sessionStorage for instant loading next time
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "praz_pos_cache",
+            JSON.stringify({
+              categories: catData.categories || [],
+              products: prodData.products || [],
+              timestamp: Date.now(),
+            })
+          );
+        } catch (_) {}
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal memuat produk.");
     } finally {
@@ -116,7 +132,25 @@ export default function PosPage() {
   }
 
   React.useEffect(() => {
-    loadData();
+    // 1. Try reading from instant sessionStorage cache first
+    let hasInstantCache = false;
+    if (typeof window !== "undefined") {
+      try {
+        const cachedRaw = sessionStorage.getItem("praz_pos_cache");
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          if (cached.categories?.length && cached.products?.length) {
+            setCategories(cached.categories);
+            setProducts(cached.products);
+            setIsLoading(false);
+            hasInstantCache = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fetch fresh data (silently if cache already rendered, or with spinner if first time)
+    loadData(!hasInstantCache);
   }, []);
 
   // Cart Handlers
@@ -271,6 +305,18 @@ export default function PosPage() {
                 </button>
               )}
             </div>
+
+            {/* Refresh button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => loadData(true)}
+              className="h-10 w-10 shrink-0 rounded-xl"
+              title="Segarkan Data Menu"
+            >
+              <RotateCcw className={cn("h-4 w-4", isLoading && "animate-spin text-primary")} />
+            </Button>
 
             {/* Mobile cart toggle button */}
             <Button

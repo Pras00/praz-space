@@ -11,6 +11,7 @@ import {
   TrendingUp,
   AlertCircle,
   FolderOpen,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 
 interface CategoryStat {
   categoryId: string;
@@ -57,8 +58,10 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  async function loadReports() {
-    setIsLoading(true);
+  async function loadReports(showSpinner = true) {
+    if (showSpinner) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const [catRes, dashRes] = await Promise.all([
@@ -74,6 +77,18 @@ export default function ReportsPage() {
 
       setCategories(catData.categories || []);
       setDashboardData(dashData);
+
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(
+            "praz_reports_cache",
+            JSON.stringify({
+              categories: catData.categories || [],
+              dashboardData: dashData,
+            })
+          );
+        } catch (_) {}
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
     } finally {
@@ -82,7 +97,23 @@ export default function ReportsPage() {
   }
 
   React.useEffect(() => {
-    loadReports();
+    let hasInstantCache = false;
+    if (typeof window !== "undefined") {
+      try {
+        const cachedRaw = sessionStorage.getItem("praz_reports_cache");
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (parsed.categories && parsed.dashboardData) {
+            setCategories(parsed.categories);
+            setDashboardData(parsed.dashboardData);
+            setIsLoading(false);
+            hasInstantCache = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    loadReports(!hasInstantCache);
   }, []);
 
   const totalCategoryRevenue = categories.reduce(
@@ -108,14 +139,26 @@ export default function ReportsPage() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          onClick={() => window.print()}
-          className="gap-2 text-xs self-start sm:self-auto"
-        >
-          <Printer className="h-4 w-4" />
-          Cetak Laporan
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => loadReports(true)}
+            className="h-9 w-9 shrink-0 rounded-xl"
+            title="Segarkan Data Laporan"
+          >
+            <RotateCcw className={cn("h-4 w-4", isLoading && "animate-spin text-primary")} />
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => window.print()}
+            className="gap-2 text-xs"
+          >
+            <Printer className="h-4 w-4" />
+            Cetak Laporan
+          </Button>
+        </div>
       </div>
 
       {error && (

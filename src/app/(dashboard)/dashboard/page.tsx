@@ -16,11 +16,13 @@ import {
   QrCode,
   Banknote,
   Award,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
+import { SalesTrendChart, type WeeklyTrendData } from "@/components/dashboard/sales-trend-chart";
 
 interface DashboardData {
   todayRevenue: number;
@@ -55,10 +57,7 @@ interface DashboardData {
     count: number;
     totalAmount: number;
   }>;
-  weeklyTrend: Array<{
-    date: string;
-    revenue: number;
-  }>;
+  weeklyTrend: WeeklyTrendData[];
 }
 
 export default function DashboardPage() {
@@ -66,14 +65,23 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  async function loadMetrics() {
-    setIsLoading(true);
+  async function loadMetrics(showSpinner = true) {
+    if (showSpinner) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const res = await fetch("/api/reports/dashboard");
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.message || "Gagal memuat metrik.");
       setData(resData);
+
+      // Cache locally for 0ms instant display next time
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("praz_dashboard_cache", JSON.stringify(resData));
+        } catch (_) {}
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
     } finally {
@@ -82,7 +90,24 @@ export default function DashboardPage() {
   }
 
   React.useEffect(() => {
-    loadMetrics();
+    // 1. Instantly render from cache if available
+    let hasInstantCache = false;
+    if (typeof window !== "undefined") {
+      try {
+        const cachedRaw = sessionStorage.getItem("praz_dashboard_cache");
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (parsed && parsed.weeklyTrend) {
+            setData(parsed);
+            setIsLoading(false);
+            hasInstantCache = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fetch fresh data in background or with spinner
+    loadMetrics(!hasInstantCache);
   }, []);
 
   if (isLoading) {
@@ -98,30 +123,36 @@ export default function DashboardPage() {
     );
   }
 
-  const maxWeeklyRevenue = Math.max(
-    ...(data?.weeklyTrend.map((d) => d.revenue) || [1]),
-    1
-  );
-
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between rounded-2xl bg-gradient-to-r from-primary/15 via-primary/5 to-transparent p-6 border border-primary/20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl bg-gradient-to-r from-primary/15 via-primary/5 to-transparent p-4 sm:p-6 border border-primary/20">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-semibold mb-2">
             Praz Space Operations Center
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
             Ringkasan Operasional Cafe
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Data metrik terhubung langsung ke database PostgreSQL Supabase.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Link href="/pos">
-            <Button className="gap-2 shadow-md font-bold">
+        <div className="flex items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => loadMetrics(true)}
+            className="h-10 w-10 shrink-0 rounded-xl bg-background/80 hover:bg-background border-border/80 shadow-xs cursor-pointer"
+            title="Segarkan Data Metrik"
+          >
+            <RotateCcw className={cn("h-4 w-4", isLoading && "animate-spin text-primary")} />
+          </Button>
+
+          <Link href="/pos" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto gap-2 shadow-md font-bold cursor-pointer">
               <Store className="h-4 w-4" />
               Buka Kasir POS
             </Button>
@@ -136,134 +167,100 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 4 KPI Metrics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* 4 KPI Metrics: 2 columns on mobile/tablet, 4 columns on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3.5 sm:p-5 border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between p-0 pb-2 space-y-0">
+            <CardTitle className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Pendapatan Hari Ini
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-foreground">
+          <CardContent className="p-0">
+            <div className="text-base sm:text-2xl font-bold font-mono text-foreground truncate">
               {formatCurrency(data?.todayRevenue || 0)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Dari {data?.completedTodayCount || 0} transaksi lunas hari ini
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
+              Dari {data?.completedTodayCount || 0} transaksi lunas
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Card className="p-3.5 sm:p-5 border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between p-0 pb-2 space-y-0">
+            <CardTitle className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Pesanan Hari Ini
             </CardTitle>
-            <ReceiptText className="h-4 w-4 text-primary" />
+            <ReceiptText className="h-4 w-4 text-primary shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-foreground">
+          <CardContent className="p-0">
+            <div className="text-base sm:text-2xl font-bold font-mono text-foreground truncate">
               {data?.todayOrdersCount || 0}
             </div>
-            <div className="flex items-center gap-2 mt-1 text-xs">
-              <span className="text-emerald-600 font-semibold">
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] sm:text-xs truncate">
+              <span className="text-emerald-600 font-semibold truncate">
                 {data?.completedTodayCount || 0} Selesai
               </span>
               <span className="text-muted-foreground">·</span>
-              <span className="text-amber-600 font-semibold">
+              <span className="text-amber-600 font-semibold truncate">
                 {data?.pendingTodayCount || 0} Menunggu
               </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Card className="p-3.5 sm:p-5 border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between p-0 pb-2 space-y-0">
+            <CardTitle className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Rata-rata Order (AOV)
             </CardTitle>
-            <ShoppingBag className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <ShoppingBag className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-foreground">
+          <CardContent className="p-0">
+            <div className="text-base sm:text-2xl font-bold font-mono text-foreground truncate">
               {formatCurrency(data?.averageOrderValue || 0)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Nilai belanja rata-rata per transaksi
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
+              Nilai belanja rata-rata
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total Transaksi Terverifikasi
+        <Card className="p-3.5 sm:p-5 border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between p-0 pb-2 space-y-0">
+            <CardTitle className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+              Total Transaksi
             </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+          <CardContent className="p-0">
+            <div className="text-base sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 truncate">
               {data?.totalTransactionsAllTime || 0}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Buku besar transaksi finansial
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">
+              Buku besar finansial
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts & Trends Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left 2 Cols: 7-Day Sales Trend Bar Chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Tren Penjualan 7 Hari Terakhir</CardTitle>
-            <CardDescription>
-              Volume pendapatan harian cafe yang berhasil diselesaikan.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-48 flex items-end justify-between gap-2 pt-4 px-2">
-              {data?.weeklyTrend.map((item, idx) => {
-                const heightPct =
-                  maxWeeklyRevenue > 0
-                    ? Math.max(8, Math.round((item.revenue / maxWeeklyRevenue) * 100))
-                    : 8;
-                return (
-                  <div
-                    key={idx}
-                    className="flex flex-1 flex-col items-center gap-2 group"
-                  >
-                    <div className="text-[10px] font-mono font-bold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {item.revenue > 0 ? formatCurrency(item.revenue) : "0"}
-                    </div>
-                    <div
-                      style={{ height: `${heightPct}%` }}
-                      className="w-full max-w-[42px] rounded-t-lg bg-primary/80 group-hover:bg-primary transition-all shadow-xs"
-                    />
-                    <span className="text-[11px] font-medium text-muted-foreground">
-                      {item.date}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+        {/* Left 2 Cols: Interactive 7-Day Sales Trend Chart */}
+        <SalesTrendChart data={data?.weeklyTrend} className="lg:col-span-2" />
 
         {/* Right 1 Col: Best Selling Menu Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-1.5">
+        <Card className="border-border/70 shadow-xs">
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-base font-bold flex items-center gap-1.5">
               <Award className="h-4 w-4 text-amber-500" />
               Menu Paling Laris
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
               Produk teratas berdasarkan kuantitas penjualan.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {data?.bestSellingProducts.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada data penjualan tercatat.
@@ -297,13 +294,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Transactions & Payment Distribution */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Recent Transactions Table */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="lg:col-span-2 overflow-hidden border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 pb-2 sm:pb-3">
             <div>
-              <CardTitle className="text-base">Transaksi Terbaru</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base font-bold">Transaksi Terbaru</CardTitle>
+              <CardDescription className="text-xs">
                 Penerimaan pembayaran terkini di terminal kasir.
               </CardDescription>
             </div>
@@ -314,7 +311,7 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {data?.recentTransactions.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada transaksi tercatat.
@@ -324,18 +321,18 @@ export default function DashboardPage() {
                 {data?.recentTransactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between py-2.5 text-xs"
+                    className="flex items-center justify-between py-2.5 sm:py-3 gap-2 text-xs"
                   >
-                    <div className="space-y-0.5">
-                      <p className="font-mono font-bold text-foreground">
+                    <div className="space-y-0.5 min-w-0 flex-1 pr-2">
+                      <p className="font-mono font-bold text-foreground truncate">
                         {tx.transactionNumber}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground truncate">
                         {tx.order.customer?.name || "Pelanggan Walk-In"} · Kasir: {tx.order.cashier.name}
                       </p>
                     </div>
-                    <div className="text-right space-y-0.5">
-                      <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="text-right space-y-0.5 shrink-0">
+                      <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         {formatCurrency(tx.amount)}
                       </p>
                       <Badge variant="outline" className="text-[10px] uppercase font-mono">
@@ -350,14 +347,14 @@ export default function DashboardPage() {
         </Card>
 
         {/* Payment Methods Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Metode Pembayaran</CardTitle>
-            <CardDescription>
+        <Card className="border-border/70 shadow-xs">
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-base font-bold">Metode Pembayaran</CardTitle>
+            <CardDescription className="text-xs">
               Perbandingan penerimaan QRIS vs Tunai.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             {data?.paymentDistribution.length === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada transaksi.

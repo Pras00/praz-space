@@ -2,8 +2,28 @@ import { prisma } from "@/lib/db/prisma";
 import { requireRole } from "@/lib/permissions/rbac";
 import { OrderStatus } from "@prisma/client";
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+let dashboardCache: CacheEntry<any> | null = null;
+let categoryReportCache: CacheEntry<any> | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL
+
+export function invalidateDashboardCache() {
+  dashboardCache = null;
+  categoryReportCache = null;
+}
+
 export async function getDashboardMetrics() {
   await requireRole(["OWNER", "ADMIN"]);
+
+  // Return from in-memory cache if fresh
+  const nowMs = Date.now();
+  if (dashboardCache && nowMs - dashboardCache.timestamp < CACHE_TTL_MS) {
+    return dashboardCache.data;
+  }
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
@@ -11,19 +31,85 @@ export async function getDashboardMetrics() {
   startOfWeek.setDate(now.getDate() - 6);
   startOfWeek.setHours(0, 0, 0, 0);
 
-  // 1. Today's orders & revenue
-  const todayOrders = await prisma.order.findMany({
-    where: {
-      createdAt: { gte: startOfToday },
-    },
-    select: {
-      id: true,
-      status: true,
-      total: true,
-    },
-  });
-
   const successfulStatuses: OrderStatus[] = [OrderStatus.PAID, OrderStatus.COMPLETED];
+
+  // Execute ALL queries concurrently via Promise.all
+  const [
+    todayOrders,
+    [totalOrdersAllTime, totalTransactionsAllTime],
+    topOrderItems,
+    recentTransactions,
+    paymentMethodsGroup,
+    pastOrders,
+  ] = await Promise.all([
+    // 1. Today's orders
+    prisma.order.findMany({
+      where: {
+        createdAt: { gte: startOfToday },
+      },
+      select: {
+        id: true,
+        status: true,
+        total: true,
+      },
+    }),
+    // 2. All-time counts
+    Promise.all([
+      prisma.order.count(),
+      prisma.transaction.count(),
+    ]),
+    // 3. Best Selling Products
+    prisma.orderItem.groupBy({
+      by: ["productId", "productNameSnapshot"],
+      _sum: {
+        quantity: true,
+        subtotal: true,
+      },
+      where: {
+        order: {
+          status: { in: successfulStatuses },
+        },
+      },
+      orderBy: {
+        _sum: {
+          quantity: "desc",
+        },
+      },
+      take: 5,
+    }),
+    // 4. Recent Transactions
+    prisma.transaction.findMany({
+      take: 6,
+      orderBy: { createdAt: "desc" },
+      include: {
+        order: {
+          select: {
+            orderNumber: true,
+            customer: { select: { name: true } },
+            cashier: { select: { name: true } },
+          },
+        },
+      },
+    }),
+    // 5. Payment method distribution
+    prisma.transaction.groupBy({
+      by: ["paymentMethod"],
+      _count: { id: true },
+      _sum: { amount: true },
+    }),
+    // 6. Last 7 Days Revenue Trend
+    prisma.order.findMany({
+      where: {
+        createdAt: { gte: startOfWeek },
+        status: { in: successfulStatuses },
+      },
+      select: {
+        total: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   let todayRevenue = 0;
   let completedTodayCount = 0;
@@ -45,32 +131,6 @@ export async function getDashboardMetrics() {
   const averageOrderValue =
     completedTodayCount > 0 ? Math.round(todayRevenue / completedTodayCount) : 0;
 
-  // 2. All-time counts for overview
-  const [totalOrdersAllTime, totalTransactionsAllTime] = await Promise.all([
-    prisma.order.count(),
-    prisma.transaction.count(),
-  ]);
-
-  // 3. Best Selling Products (Aggregated from OrderItems of paid/completed orders)
-  const topOrderItems = await prisma.orderItem.groupBy({
-    by: ["productId", "productNameSnapshot"],
-    _sum: {
-      quantity: true,
-      subtotal: true,
-    },
-    where: {
-      order: {
-        status: { in: successfulStatuses },
-      },
-    },
-    orderBy: {
-      _sum: {
-        quantity: "desc",
-      },
-    },
-    take: 5,
-  });
-
   const bestSellingProducts = topOrderItems.map((item) => ({
     productId: item.productId,
     name: item.productNameSnapshot,
@@ -78,74 +138,72 @@ export async function getDashboardMetrics() {
     totalRevenue: Number(item._sum.subtotal || 0),
   }));
 
-  // 4. Recent Transactions
-  const recentTransactions = await prisma.transaction.findMany({
-    take: 6,
-    orderBy: { createdAt: "desc" },
-    include: {
-      order: {
-        select: {
-          orderNumber: true,
-          customer: { select: { name: true } },
-          cashier: { select: { name: true } },
-        },
-      },
-    },
-  });
-
-  // 5. Payment method distribution
-  const paymentMethodsGroup = await prisma.transaction.groupBy({
-    by: ["paymentMethod"],
-    _count: { id: true },
-    _sum: { amount: true },
-  });
-
   const paymentDistribution = paymentMethodsGroup.map((pm) => ({
     method: pm.paymentMethod,
     count: pm._count.id,
     totalAmount: Number(pm._sum.amount || 0),
   }));
 
-  // 6. Last 7 Days Revenue Trend
-  const pastOrders = await prisma.order.findMany({
-    where: {
-      createdAt: { gte: startOfWeek },
-      status: { in: successfulStatuses },
-    },
-    select: {
-      total: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  // Safe local date formatting helper (YYYY-MM-DD)
+  function getLocalDateKey(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
-  // Group by day name (e.g. "08 Sep")
-  const trendMap = new Map<string, number>();
+  const trendMap = new Map<
+    string,
+    {
+      date: string;
+      dayName: string;
+      fullDate: string;
+      revenue: number;
+      orderCount: number;
+      isToday: boolean;
+    }
+  >();
+
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
-    const label = new Intl.DateTimeFormat("id-ID", {
+    const key = getLocalDateKey(d);
+    const date = new Intl.DateTimeFormat("id-ID", {
       day: "numeric",
       month: "short",
     }).format(d);
-    trendMap.set(label, 0);
+    const dayName = new Intl.DateTimeFormat("id-ID", {
+      weekday: "short",
+    }).format(d);
+    const fullDate = new Intl.DateTimeFormat("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(d);
+
+    trendMap.set(key, {
+      date,
+      dayName,
+      fullDate,
+      revenue: 0,
+      orderCount: 0,
+      isToday: i === 0,
+    });
   }
 
   for (const o of pastOrders) {
-    const label = new Intl.DateTimeFormat("id-ID", {
-      day: "numeric",
-      month: "short",
-    }).format(o.createdAt);
-    const curr = trendMap.get(label) || 0;
-    trendMap.set(label, curr + Number(o.total));
+    const key = getLocalDateKey(new Date(o.createdAt));
+    const item = trendMap.get(key);
+    if (item) {
+      item.revenue += Number(o.total);
+      item.orderCount += 1;
+    }
   }
 
-  const weeklyTrend = Array.from(trendMap.entries()).map(([date, revenue]) => ({
-    date,
-    revenue,
-  }));
+  const weeklyTrend = Array.from(trendMap.values());
 
-  return {
+  const result = {
     todayRevenue,
     todayOrdersCount: todayOrders.length,
     completedTodayCount,
@@ -159,10 +217,22 @@ export async function getDashboardMetrics() {
     paymentDistribution,
     weeklyTrend,
   };
+
+  dashboardCache = {
+    data: result,
+    timestamp: Date.now(),
+  };
+
+  return result;
 }
 
 export async function getCategoryPerformance() {
   await requireRole(["OWNER", "ADMIN"]);
+
+  const nowMs = Date.now();
+  if (categoryReportCache && nowMs - categoryReportCache.timestamp < CACHE_TTL_MS) {
+    return categoryReportCache.data;
+  }
 
   const categories = await prisma.category.findMany({
     include: {
@@ -184,7 +254,7 @@ export async function getCategoryPerformance() {
     },
   });
 
-  return categories.map((cat) => {
+  const result = categories.map((cat) => {
     let totalQuantity = 0;
     let totalRevenue = 0;
 
@@ -204,4 +274,11 @@ export async function getCategoryPerformance() {
       totalRevenue,
     };
   });
+
+  categoryReportCache = {
+    data: result,
+    timestamp: Date.now(),
+  };
+
+  return result;
 }
