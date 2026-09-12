@@ -97,6 +97,7 @@ interface SidebarProps {
   userEmail?: string;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  onNavigate?: () => void;
   className?: string;
 }
 
@@ -106,6 +107,7 @@ export function Sidebar({
   userEmail = "staff@prazspace.cafe",
   isCollapsed = false,
   onToggleCollapse,
+  onNavigate,
   className,
 }: SidebarProps) {
   const pathname = usePathname();
@@ -158,6 +160,7 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 relative",
                 isActive

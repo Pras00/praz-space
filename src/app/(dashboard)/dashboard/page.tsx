@@ -97,7 +97,12 @@ export default function DashboardPage() {
         const cachedRaw = sessionStorage.getItem("praz_dashboard_cache");
         if (cachedRaw) {
           const parsed = JSON.parse(cachedRaw);
-          if (parsed && parsed.weeklyTrend) {
+          if (
+            parsed &&
+            typeof parsed === "object" &&
+            Array.isArray(parsed.weeklyTrend) &&
+            Array.isArray(parsed.bestSellingProducts)
+          ) {
             setData(parsed);
             setIsLoading(false);
             hasInstantCache = true;
@@ -110,7 +115,7 @@ export default function DashboardPage() {
     loadMetrics(!hasInstantCache);
   }, []);
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="space-y-6">
         <div className="h-32 rounded-2xl bg-muted/40 animate-pulse" />
@@ -119,6 +124,24 @@ export default function DashboardPage() {
             <div key={i} className="h-28 rounded-xl bg-muted/40 animate-pulse" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (!data && error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-6 space-y-4 rounded-2xl border border-destructive/20 bg-destructive/5 my-6">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <AlertCircle className="h-7 w-7" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="font-bold text-lg text-foreground">Gagal Memuat Metrik Dashboard</h3>
+          <p className="text-sm text-muted-foreground max-w-md">{error}</p>
+        </div>
+        <Button onClick={() => loadMetrics(true)} className="gap-2 cursor-pointer font-semibold">
+          <RotateCcw className="h-4 w-4" />
+          Muat Ulang Metrik
+        </Button>
       </div>
     );
   }
@@ -261,13 +284,13 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            {data?.bestSellingProducts.length === 0 ? (
+            {(data?.bestSellingProducts?.length ?? 0) === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada data penjualan tercatat.
               </div>
             ) : (
               <div className="space-y-3">
-                {data?.bestSellingProducts.map((prod, idx) => (
+                {data?.bestSellingProducts?.map((prod, idx) => (
                   <div
                     key={prod.productId}
                     className="flex items-center justify-between text-xs"
@@ -312,13 +335,13 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            {data?.recentTransactions.length === 0 ? (
+            {(data?.recentTransactions?.length ?? 0) === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada transaksi tercatat.
               </div>
             ) : (
               <div className="divide-y divide-border/60">
-                {data?.recentTransactions.map((tx) => (
+                {data?.recentTransactions?.map((tx) => (
                   <div
                     key={tx.id}
                     className="flex items-center justify-between py-2.5 sm:py-3 gap-2 text-xs"
@@ -328,7 +351,7 @@ export default function DashboardPage() {
                         {tx.transactionNumber}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">
-                        {tx.order.customer?.name || "Pelanggan Walk-In"} · Kasir: {tx.order.cashier.name}
+                        {tx.order?.customer?.name || "Pelanggan Walk-In"} · Kasir: {tx.order?.cashier?.name || "Kasir"}
                       </p>
                     </div>
                     <div className="text-right space-y-0.5 shrink-0">
@@ -355,13 +378,13 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            {data?.paymentDistribution.length === 0 ? (
+            {(data?.paymentDistribution?.length ?? 0) === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada transaksi.
               </div>
             ) : (
               <div className="space-y-3">
-                {data?.paymentDistribution.map((pm) => (
+                {data?.paymentDistribution?.map((pm) => (
                   <div
                     key={pm.method}
                     className="rounded-xl border border-border/80 bg-muted/20 p-3 flex items-center justify-between text-xs"

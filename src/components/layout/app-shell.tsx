@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { X } from "lucide-react";
@@ -20,6 +21,12 @@ export function AppShell({
 }: AppShellProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const pathname = usePathname();
+
+  // Auto-close mobile drawer on any route navigation
+  React.useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground antialiased selection:bg-primary/20">
@@ -55,6 +62,7 @@ export function AppShell({
               userName={userName}
               userEmail={userEmail}
               isCollapsed={false}
+              onNavigate={() => setIsMobileOpen(false)}
               className="w-full h-full border-r-0"
             />
           </div>

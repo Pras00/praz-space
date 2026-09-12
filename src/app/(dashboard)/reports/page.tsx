@@ -306,7 +306,7 @@ export default function ReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {dashboardData?.bestSellingProducts.length === 0 ? (
+            {(dashboardData?.bestSellingProducts?.length ?? 0) === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada data penjualan.
               </div>
@@ -321,7 +321,7 @@ export default function ReportsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dashboardData?.bestSellingProducts.map((p, idx) => (
+                  {dashboardData?.bestSellingProducts?.map((p, idx) => (
                     <TableRow key={p.productId}>
                       <TableCell className="font-bold text-xs text-muted-foreground">
                         #{idx + 1}
@@ -355,13 +355,13 @@ export default function ReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {dashboardData?.paymentDistribution.length === 0 ? (
+            {(dashboardData?.paymentDistribution?.length ?? 0) === 0 ? (
               <div className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada data transaksi.
               </div>
             ) : (
               <div className="space-y-4">
-                {dashboardData?.paymentDistribution.map((pm) => (
+                {dashboardData?.paymentDistribution?.map((pm) => (
                   <div
                     key={pm.method}
                     className="rounded-xl border border-border/70 p-4 space-y-2 bg-card"

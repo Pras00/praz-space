@@ -543,7 +543,7 @@ export default function PosPage() {
 
             {/* Line items */}
             <div className="py-2.5 space-y-1.5 border-b border-dashed border-zinc-300 text-[11px]">
-              {createdOrder?.items.map((it) => (
+              {createdOrder?.items?.map((it) => (
                 <div key={it.id} className="flex justify-between items-start">
                   <div className="flex-1 pr-2">
                     <p className="font-bold">{it.productNameSnapshot}</p>
