@@ -1,214 +1,286 @@
-# PRAZ SPACE — Modern Cafe Point of Sale (POS) & Management System
+# ☕ PRAZ SPACE — Modern Cafe POS & Management System
 
-> Production-grade, high-integrity Point of Sale and Cafe Management Web Application built for **Praz Space**.
+<p align="center">
+  <img src="public/icon.svg" alt="Praz Space Logo" width="80" height="80" />
+</p>
 
----
+<p align="center">
+  <strong>Sistem Point of Sale (POS) & Manajemen Operasional Cafe Berstandar Komersial</strong><br>
+  Dibangun dengan arsitektur modern Next.js App Router, Prisma ORM, PostgreSQL Supabase, dan Integrasi Midtrans Payment Gateway.
+</p>
 
-## 1. Project Overview
-
-**Praz Space** adalah sistem Point of Sale (POS) dan manajemen operasional cafe modern yang dirancang dengan standar komersial SaaS. Sistem ini menghubungkan operasional meja kasir, manajemen katalog menu cafe, pemrosesan transaksi multi-metode (Tunai & Midtrans QRIS/E-Wallet), pembukuan transaksi *immutable*, serta pemantauan analitik pendapatan harian secara *real-time*.
-
-Aplikasi ini dibangun dengan prinsip **Zero-Trust Pricing** dan **Zero-Fake Functionality** — seluruh data kalkulasi harga, pajak PB1, otorisasi peran, dan pelaporan keuangan diproses serta divalidasi langsung oleh server terhadap database PostgreSQL Supabase.
-
----
-
-## 2. Technology Stack
-
-### Frontend
-- **Framework**: Next.js 16 (App Router, Server Components & Server Actions)
-- **Language**: TypeScript (Strict Mode)
-- **Styling**: Tailwind CSS v4 & CSS Variables (`globals.css`)
-- **UI Components**: shadcn/ui primitives (`@radix-ui/react-*`, `class-variance-authority`)
-- **Icons**: Lucide React
-- **Theme**: `next-themes` (Dark Mode & Light Mode support)
-
-### Backend & Database
-- **Runtime**: Node.js v24
-- **Database**: PostgreSQL (Supabase AWS Sydney Connection Pooler)
-- **ORM**: Prisma ORM v6.19.3
-- **Validation**: Zod v3
-- **Authentication**: Stateless JWT via `jose` dalam cookie `HttpOnly`, `SameSite=Lax`, `Secure`
-- **Password Hashing**: `bcryptjs` (Salt Rounds 10)
-- **Payment Gateway**: Midtrans Snap & Core API (QRIS, GoPay, Bank Transfer) dengan verifikasi signature kriptografis SHA-512
+<p align="center">
+  <a href="https://praz-space.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-praz--space.vercel.app-emerald?style=for-the-badge&logo=vercel" alt="Live Demo" /></a>
+  <img src="https://img.shields.io/badge/Next.js-16.3-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19.2-blue?style=for-the-badge&logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Prisma-6.19-2d3748?style=for-the-badge&logo=prisma" alt="Prisma" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Supabase-3ecf8e?style=for-the-badge&logo=supabase" alt="Supabase" />
+</p>
 
 ---
 
-## 3. System Architecture & Directory Structure
+## 📌 Daftar Isi
 
+1. [Tentang Praz Space](#-tentang-praz-space)
+2. [Fitur Utama](#-fitur-utama)
+3. [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
+4. [Akun Demo Bawaan](#-akun-demo-bawaan-default-credentials)
+5. [Panduan Instalasi Cepat](#-panduan-instalasi-cepat-quick-start)
+6. [Konfigurasi Environment (.env)](#-konfigurasi-environment-env)
+7. [Panduan Simulasi Pembayaran QRIS](#-panduan-simulasi-pembayaran-qris)
+8. [Struktur Direktori Proyek](#-struktur-direktori-proyek)
+9. [Daftar Perintah (Scripts)](#-daftar-perintah-scripts)
+10. [Prinsip Desain & Keamanan Finansial](#-prinsip-desain--keamanan-finansial)
+
+---
+
+## 📖 Tentang Praz Space
+
+**Praz Space** adalah aplikasi web Point of Sale (POS) dan manajemen cafe berbasis *cloud* yang dirancang untuk kecepatan operasional kasir, akurasi pembukuan finansial, dan kemudahan pemantauan bisnis bagi pemilik cafe. 
+
+Sistem ini menerapkan prinsip **Zero-Trust Server Authority** di mana semua perhitungan harga, diskon, dan pajak PB1 (10%) dihitung dan divalidasi langsung oleh server database untuk mencegah manipulasi data dari sisi peramban klien.
+
+> 🌐 **Coba Langsung**: Anda dapat mengakses versi live demo di [praz-space.vercel.app](https://praz-space.vercel.app).
+
+---
+
+## ✨ Fitur Utama
+
+### 🛒 1. Terminal Kasir (Point of Sale)
+- **Katalog Menu Interaktif**: Pemilihan kategori cepat (Kopi, Non-Kopi, Makanan, Camilan) serta pencarian nama menu secara instan.
+- **Keranjang Belanja Real-Time**: Penyesuaian kuantitas, catatan pesanan khusus, dan kalkulasi subtotal otomatis.
+- **Manajemen Pelanggan**: Dukungan pesanan untuk pelanggan *Walk-In* maupun pelanggan tetap yang terdaftar.
+- **Diskon Fleksibel**: Penerapan persentase diskon promo secara instan.
+- **Kalkulator Pembayaran Tunai**: Fitur uang pas serta tombol nominal uang pecahan rekomendasi otomatis untuk menghitung uang kembalian secara tepat.
+- **Cetak Struk Thermal 80mm**: Format struk belanja standar kasir cafe yang siap dicetak ke printer thermal Bluetooth/USB atau diunduh sebagai PDF.
+
+### 📊 2. Dashboard Analitik Operasional
+- **Grafik Tren Penjualan 7 Hari**: Visualisasi omset dan volume pesanan dengan mode interaktif **Area Spline** dan **Bar Chart**.
+- **Ringkasan KPI Utama**:
+  - Pendapatan Hari Ini (Total nominal dari transaksi lunas)
+  - Jumlah Pesanan (Selesai vs Menunggu)
+  - Rata-rata Nilai Belanja (*Average Order Value* / AOV)
+  - Akumulasi Total Transaksi Buku Besar
+- **Peringkat Menu Terlaris**: 5 produk dengan jumlah penjualan tertinggi.
+- **Distribusi Pembayaran**: Visualisasi perbandingan penerimaan pembayaran QRIS vs Uang Tunai.
+- **Feed Transaksi Kasir Terkini**: Daftar penerimaan transaksi kasir yang diperbarui secara langsung.
+
+### 📋 3. Manajemen Menu & Kategori
+- **Katalog Produk**: Daftar menu lengkap dengan foto, nama, deskripsi, harga, dan kategori.
+- **Tambah & Ubah Menu**: Formulir pendaftaran menu baru dengan *live preview*.
+- **Status Ketersediaan**: Tombol sekali klik untuk menonaktifkan menu yang habis/stok kosong.
+- **Manajemen Kategori**: Menambah, mengubah nama, dan mengaktifkan kategori menu cafe.
+
+### 📑 4. Buku Besar Transaksi & Laporan
+- **Buku Besar Transaksi (*Immutable Ledger*)**: Setiap pembayaran yang berhasil dicatat permanen dan tidak dapat dimanipulasi atau dihapus sembarangan.
+- **Laporan Penjualan per Kategori**: Analisis kategori mana yang menjadi kontributor omset terbesar.
+- **Cetak Laporan**: Fitur cetak ramah printer untuk kebutuhan pembukuan fisik.
+
+### 🔐 5. Role-Based Access Control (RBAC)
+Sistem memiliki 3 tingkat hak akses dengan perlindungan berlapis di sisi server:
+- **OWNER**: Akses tanpa batas ke seluruh modul, termasuk manajemen akun staf (`/users`) dan pengaturan cafe (`/settings`).
+- **ADMIN / MANAGER**: Mengelola menu produk, kategori, melihat laporan keuangan, dan memantau dashboard.
+- **CASHIER**: Fokus pada operasional kasir (`/pos`), riwayat pesanan (`/orders`), dan cetak struk belanja. Upaya akses ke halaman manajerial akan secara otomatis dialihkan kembali ke POS.
+
+### 📱 6. Desain Responsif & Kinerja Tinggi
+- **Mobile & Tablet Friendly**: Tata letak adaptif dengan drawer navigasi yang menutup otomatis saat berpindah halaman.
+- **Instant Client Caching**: Menggunakan `sessionStorage` cerdas dengan *background revalidation* untuk transisi halaman berkecepatan 0 milidetik.
+- **Error Boundary**: Penanganan galat tingkat komponen untuk memastikan aplikasi tidak *crash* atau blank saat terjadi kendala jaringan seluler.
+- **Mode Gelap / Terang**: Dukungan tema *Dark Mode* dan *Light Mode* bawaan.
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+| Kategori | Teknologi | Kegunaan |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 16 (App Router) | Server Components, Route Handlers, dan Client Interactivity |
+| **Bahasa** | TypeScript (Strict Mode) | Keamanan tipe data end-to-end |
+| **Styling** | Tailwind CSS v4 & Lucide Icons | Antarmuka responsif modern & ikonografi |
+| **UI Primitives** | Radix UI / shadcn/ui | Komponen dialog, dropdown, tabs, dan tooltip yang aksesibel |
+| **Database** | PostgreSQL via Supabase | Penyimpanan data relasional dengan pooling connection |
+| **ORM** | Prisma ORM 6.19 | Pemetaan skema database dan *type-safe query client* |
+| **Autentikasi** | Stateless JWT via `jose` | Sesi terenkripsi dalam HTTP-Only, Secure, SameSite cookie |
+| **Keamanan** | `bcryptjs` & Zod | Hashing kata sandi dan validasi data input skema |
+| **Payment Gateway** | Midtrans Core & Snap API | Pembayaran QRIS / E-Wallet dengan verifikasi SHA-512 |
+
+---
+
+## 👤 Akun Demo Bawaan (Default Credentials)
+
+Untuk mencoba web app ini secara instan, Anda dapat menggunakan akun yang telah disediakan pada berkas seeding database:
+
+| Peran (Role) | Email | Kata Sandi | Cakupan Akses |
+| :--- | :--- | :--- | :--- |
+| **OWNER** | `owner@prazspace.cafe` | `password123` | Seluruh Modul, Staf, Pengaturan |
+| **ADMIN** | `admin@prazspace.cafe` | `password123` | Dashboard, Produk, Kategori, Laporan |
+| **CASHIER 1** | `cashier@prazspace.cafe` | `password123` | Terminal POS & Riwayat Pesanan |
+| **CASHIER 2** | `cashier2@prazspace.cafe` | `password123` | Terminal POS & Riwayat Pesanan |
+
+> 💡 *Di halaman login, tersedia tombol pintas demo untuk mengisi kredensial tersebut secara otomatis hanya dengan sekali klik.*
+
+---
+
+## 🚀 Panduan Instalasi Cepat (Quick Start)
+
+Pastikan komputer Anda telah terpasang **Node.js versi 20+** atau yang lebih baru.
+
+### 1. Kloning Repository
+```bash
+git clone https://github.com/Pras00/praz-space.git
+cd praz-space
 ```
+
+### 2. Pasang Dependensi
+```bash
+npm install
+```
+
+### 3. Siapkan Environment Variables
+Salin template konfigurasi:
+```bash
+cp .env.example .env
+```
+Buka berkas `.env` dan masukkan konfigurasi database serta kredensial Anda (lihat panduan konfigurasi di bawah).
+
+### 4. Sinkronkan Skema Database & Lakukan Seeding
+Jalankan perintah Prisma untuk membuat tabel di database dan mengisi data contoh cafe (menu, kategori, kasir, dan riwayat pesanan):
+```bash
+# Sinkronkan skema database
+npx prisma db push
+
+# Eksekusi data seed bawaan
+npx prisma db seed
+```
+
+### 5. Jalankan Server Pengembangan
+```bash
+npm run dev
+```
+Buka peramban Anda dan kunjungi **`http://localhost:3000`**. Anda akan diarahkan ke halaman login dan dapat langsung mencoba akun demo yang tersedia.
+
+---
+
+## ⚙️ Konfigurasi Environment (`.env`)
+
+Berikut adalah variabel lingkungan yang diperlukan pada berkas `.env`:
+
+```env
+# 1. DATABASE (PostgreSQL / Supabase)
+# DATABASE_URL: Menggunakan connection pooler (port 6543 pada Supabase)
+DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# DIRECT_URL: Koneksi langsung ke database untuk migrasi skema Prisma (port 5432 pada Supabase)
+DIRECT_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres"
+
+# 2. AUTENTIKASI (JWT SECRET)
+# Token rahasia minimal 32 karakter acak (buat via: openssl rand -hex 32)
+AUTH_SECRET="a58c4f4f1375b93d9410c3cd02841da645f722e27f184f427bc823e2d72677b3"
+
+# 3. MIDTRANS PAYMENT GATEWAY
+# Dapatkan dari Dashboard Midtrans (Settings > Access Keys)
+MIDTRANS_SERVER_KEY="SB-Mid-server-xxxxxxxxxxxxxxxx"
+MIDTRANS_CLIENT_KEY="SB-Mid-client-xxxxxxxxxxxxxxxx"
+MIDTRANS_IS_PRODUCTION="false"
+
+# 4. BASE URL APLIKASI
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+---
+
+## 💳 Panduan Simulasi Pembayaran QRIS
+
+Untuk memudahkan pengujian pembayaran di lingkungan lokal tanpa perlu menyiapkan webhook tunneling (seperti Ngrok):
+
+1. Masuk sebagai **Kasir** atau **Owner** via `/login`.
+2. Buka menu **POS / Kasir** (`/pos`).
+3. Pilih beberapa menu minuman atau makanan ke keranjang, lalu klik **"Proses Pembayaran"**.
+4. Pada modal pembayaran, pilih tab **"QRIS / Midtrans"**.
+5. Klik tombol hijau **"Simulasi Bayar QRIS Berhasil"**.
+6. Sistem akan otomatis memproses transaksi seolah-olah mendapat sinyal *Settlement* dari Midtrans, pesanan berubah menjadi `PAID`, buku besar transaksi tercatat, dan dialog cetak struk thermal akan langsung terbuka!
+
+---
+
+## 📁 Struktur Direktori Proyek
+
+```text
 praz-space/
 ├── prisma/
-│   ├── schema.prisma            # Skema lengkap: User, Category, Product, Customer, Order, OrderItem, Payment, Transaction, AuditLog
-│   └── seed.ts                  # Skrip seed realistis menu cafe, kasir, dan transaksi contoh
+│   ├── schema.prisma            # Skema entitas Prisma (User, Product, Order, Transaction, dll.)
+│   └── seed.ts                  # Data awal menu cafe, akun staf, dan transaksi contoh
+├── public/
+│   ├── icon.svg                 # Logo vektor Praz Space
+│   └── favicon.ico              # Favicon web
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/
-│   │   │   └── login/           # Halaman login dengan kartu demo instan
+│   │   │   └── login/           # Halaman login dengan tombol demo instan
 │   │   ├── (dashboard)/
-│   │   │   ├── layout.tsx       # Layout pembungkus AppShell dan sesi
-│   │   │   ├── dashboard/       # KPI metrik harian, tren omset 7 hari, menu terlaris
-│   │   │   ├── pos/             # Terminal POS kasir interaktif 2 kolom
-│   │   │   ├── products/        # Katalog menu, filter kategori, tambah & edit menu
-│   │   │   │   ├── [id]/        # Edit produk & pelacakan perubahan harga
-│   │   │   │   └── new/         # Pendaftaran menu baru dengan live preview
-│   │   │   ├── categories/      # Manajemen kategori cafe & toggle aktif
-│   │   │   ├── orders/          # Riwayat pesanan & detail pesanan individual
-│   │   │   │   └── [id]/        # Detail pesanan & struk belanja
-│   │   │   ├── transactions/    # Buku besar transaksi keuangan (immutable ledger)
-│   │   │   │   └── [id]/        # Rekonsiliasi transaksi per pembayaran
-│   │   │   ├── customers/       # Direktori pelanggan cafe
-│   │   │   ├── reports/         # Laporan performa per kategori & menu
-│   │   │   ├── users/           # Manajemen akun staf & peran (Owner only)
-│   │   │   └── settings/        # Pengaturan cafe, pajak PB1, status Midtrans
-│   │   └── api/
-│   │       ├── auth/            # /login dan /logout handler
-│   │       ├── categories/      # API Kategori CRUD
-│   │       ├── customers/       # API Pelanggan
-│   │       ├── orders/          # API Pesanan (perhitungan harga server-side)
-│   │       ├── payments/        # /cash, /create-snap, /simulate, /midtrans/notification (Webhook)
-│   │       ├── products/        # API Produk dengan search & filtering
-│   │       ├── reports/         # API Agregasi dashboard & kategori
-│   │       ├── transactions/    # API Buku besar transaksi
-│   │       └── users/           # API Pengguna staf
+│   │   │   ├── layout.tsx       # Layout utama dengan validasi sesi & AppShell
+│   │   │   ├── error.tsx        # Error boundary penanganan galat area dashboard
+│   │   │   ├── dashboard/       # Halaman ringkasan analitik & grafik tren penjualan
+│   │   │   ├── pos/             # Terminal kasir POS 2 kolom responsif
+│   │   │   ├── orders/          # Riwayat pesanan & detail struk belanja
+│   │   │   ├── products/        # Katalog & penambahan menu cafe
+│   │   │   ├── categories/      # Manajemen kategori produk
+│   │   │   ├── transactions/    # Jurnal buku besar transaksi keuangan
+│   │   │   ├── customers/       # Direktori data pelanggan
+│   │   │   ├── reports/         # Rekapitulasi laporan operasional & ekspor
+│   │   │   ├── users/           # Manajemen staf & peran (Khusus Owner)
+│   │   │   └── settings/        # Pengaturan cafe & konfigurasi gateway
+│   │   ├── api/                 # Endpoint RESTful Next.js Route Handlers
+│   │   ├── global-error.tsx     # Error boundary tingkat akar peramban
+│   │   ├── layout.tsx           # Root layout dengan konfigurasi font & theme
+│   │   └── globals.css          # Desain tema Tailwind CSS v4
 │   ├── components/
-│   │   ├── layout/              # Sidebar, Navbar, AppShell, Logo, ThemeToggle
-│   │   ├── pos/                 # ProductCard, CartItemRow, CustomerSelector, OrderSummaryPanel, PaymentModal
-│   │   ├── orders/              # ThermalReceipt (layout 80mm standar cetak thermal)
-│   │   └── ui/                  # Button, Card, Input, Badge, Table, Dialog, Dropdown, Select, Tabs, etc.
+│   │   ├── dashboard/           # SalesTrendChart (Area Spline & Bar Chart)
+│   │   ├── layout/              # AppShell, Navbar, Sidebar, Logo, ThemeToggle
+│   │   ├── pos/                 # Komponen antarmuka kasir & thermal receipt
+│   │   └── ui/                  # Komponen shadcn/ui
 │   ├── lib/
-│   │   ├── auth/                # JWT session, bcrypt hashing, cookie manager
-│   │   ├── db/                  # Prisma singleton client
+│   │   ├── auth/                # JWT session signer, verifier, dan password hasher
+│   │   ├── db/                  # Prisma singleton client instance
 │   │   ├── payments/            # Midtrans Snap client & SHA-512 verifier
-│   │   ├── permissions/         # Server-side RBAC guards
-│   │   ├── validations/         # Zod schemas (auth, product, order, user)
-│   │   └── utils/               # Format Rupiah (IDR), format tanggal, generator nomor transaksi
-│   ├── services/                # Layer logika bisnis terisolasi
-│   │   ├── category.service.ts
-│   │   ├── customer.service.ts
-│   │   ├── order.service.ts
-│   │   ├── payment.service.ts
-│   │   ├── product.service.ts
-│   │   ├── report.service.ts
-│   │   ├── transaction.service.ts
-│   │   └── user.service.ts
-│   └── middleware.ts            # Proteksi rute otomatis & pengalihan peran
+│   │   ├── permissions/         # Guard RBAC berbasis peran
+│   │   └── utils.ts             # Formatter Rupiah, tanggal lokal, generator nomor seri
+│   └── services/                # Layer logika bisnis & query database terisolasi
+├── .env.example                 # Contoh variabel lingkungan
+├── package.json                 # Dependensi & skrip proyek
+└── README.md                    # Dokumentasi lengkap proyek
 ```
 
 ---
 
-## 4. Role-Based Access Control (RBAC)
+## 📜 Daftar Perintah (Scripts)
 
-| Modul / Fitur | OWNER | ADMIN / MANAGER | CASHIER |
-| :--- | :---: | :---: | :---: |
-| **Terminal Kasir POS (`/pos`)** | Ya | Ya | Ya |
-| **Riwayat Pesanan (`/orders`)** | Ya | Ya | Ya |
-| **Cetak Struk Thermal** | Ya | Ya | Ya |
-| **Katalog Produk (`/products`)** | Ya | Ya | Dibatalkan (Dialihkan ke POS) |
-| **Kategori Menu (`/categories`)** | Ya | Ya | Dibatalkan (Dialihkan ke POS) |
-| **Buku Besar Transaksi (`/transactions`)** | Ya | Ya | Dibatalkan (Dialihkan ke POS) |
-| **Laporan Omset (`/reports`)** | Ya | Ya | Dibatalkan (Dialihkan ke POS) |
-| **Dashboard Operasional (`/dashboard`)** | Ya | Ya | Dibatalkan (Dialihkan ke POS) |
-| **Manajemen Staf (`/users`)** | Ya | Dibatalkan (Dialihkan ke POS) | Dibatalkan (Dialihkan ke POS) |
-| **Pengaturan Sistem (`/settings`)** | Ya | Dibatalkan (Dialihkan ke POS) | Dibatalkan (Dialihkan ke POS) |
-| **Pembatalan / Refund Pesanan** | Ya | Ya | Dilarang di Server |
+| Perintah | Deskripsi |
+| :--- | :--- |
+| `npm run dev` | Menjalankan server lokal Next.js di `http://localhost:3000` |
+| `npm run build` | Melakukan kompilasi build produksi Next.js |
+| `npm run start` | Menjalankan build produksi yang telah dikompilasi |
+| `npm run lint` | Menjalankan ESLint untuk pemeriksaan kode |
+| `npx prisma db push` | Menyinkronkan perubahan skema `schema.prisma` ke database |
+| `npx prisma db seed` | Menjalankan skrip seeding data contoh cafe |
+| `npx prisma studio` | Membuka GUI interaktif Prisma untuk melihat dan mengedit data database |
 
 ---
 
-## 5. Akun Pengguna Bawaan (Default Seed Credentials)
+## 🛡️ Prinsip Desain & Keamanan Finansial
 
-Seluruh akun di bawah dapat langsung digunakan untuk login:
-
-| Peran (Role) | Email Akun | Kata Sandi | Akses Utama |
-| :--- | :--- | :--- | :--- |
-| **OWNER** | `owner@prazspace.cafe` | `password123` | Seluruh Modul, Manajemen Staf & Pengaturan |
-| **ADMIN** | `admin@prazspace.cafe` | `password123` | Dashboard, Produk, Kategori, Laporan, Order |
-| **CASHIER** | `cashier@prazspace.cafe` | `password123` | Khusus Terminal POS & Riwayat Pesanan |
-| **CASHIER 2** | `cashier2@prazspace.cafe` | `password123` | Terminal POS Shift Malam |
-
----
-
-## 6. Aturan Bisnis Finansial Krusial
-
-1. **Zero-Trust Client Pricing**:
-   Browser client dilarang keras menentukan subtotal atau harga produk. Request checkout hanya mengirimkan ID produk dan kuantitas. Server membaca harga asli dari database Supabase, menghitung ulang subtotal, diskon, dan pajak PB1 (10%).
-2. **Ketersediaan Produk**:
-   Produk berstatus `isActive: false` (habis/nonaktif) dicegah secara mutlak oleh server saat checkout diproses.
-3. **Snapshot Harga Historis (`OrderItem`)**:
-   Setiap baris item pesanan menyimpan snapshot `unitPrice` dan `productNameSnapshot`. Jika harga menu diubah di kemudian hari, nilai transaksi masa lalu tetap valid dan tidak berubah.
-4. **Idempotensi Webhook Midtrans**:
-   Notifikasi webhook yang dikirim ulang oleh Midtrans tidak akan membuat catatan transaksi ganda pada database. Jika order sudah `PAID`, sistem mengabaikan pengulangan notifikasi dengan aman (HTTP 200).
-5. **Buku Besar Transaksi Immutable**:
-   Setiap pembayaran lunas dicatat pada tabel `Transaction` yang berdiri sendiri sebagai jurnal akuntansi resmi dan tidak dapat dihapus.
+1. **Server-Side Pricing Authority**:
+   Klien hanya mengirimkan pasangan `{ productId, quantity }`. Nilai rupiah subtotal, diskon, dan pajak PB1 (10%) dihitung seutuhnya oleh server berdasarkan data terkini di database Supabase.
+2. **Snapshot Harga Historis**:
+   Setiap pesanan mengabadikan snapshot `unitPrice` dan `productNameSnapshot`. Apabila harga menu diubah di kemudian hari, nilai transaksi masa lampau tetap presisi dan tidak berubah.
+3. **Idempotensi Webhook Gateway**:
+   Notifikasi pembayaran dari Midtrans diverifikasi menggunakan signature kriptografis `SHA-512`. Jika webhook terkirim berulang kali oleh gateway, status tidak akan memicu duplikasi transaksi.
+4. **Buku Besar Transaksi Permanen**:
+   Tabel `Transaction` berfungsi sebagai jurnal akuntansi resmi yang merekam mutasi pembayaran lunas secara permanen.
 
 ---
 
-## 7. Panduan Instalasi & Menjalankan Aplikasi
-
-### Kebutuhan Sistem
-- **Node.js**: Versi 20 atau 24+
-- **Database**: PostgreSQL (atau instance Supabase)
-
-### Langkah Setup
-
-1. **Clone repository dan install dependensi**:
-   ```bash
-   npm install
-   ```
-
-2. **Konfigurasi Environment (`.env`)**:
-   Salin `.env.example` ke `.env` lalu sesuaikan kredensial Anda:
-   ```env
-   DATABASE_URL="postgresql://postgres.[REF]:[PASSWORD]@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
-   DIRECT_URL="postgresql://postgres.[REF]:[PASSWORD]@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres"
-
-   AUTH_SECRET="your-256-bit-cryptographic-random-string"
-
-   MIDTRANS_SERVER_KEY="SB-Mid-server-xxxxxxxxxxxxxxxx"
-   MIDTRANS_CLIENT_KEY="SB-Mid-client-xxxxxxxxxxxxxxxx"
-   MIDTRANS_IS_PRODUCTION="false"
-   ```
-
-3. **Sinkronisasi Skema Database**:
-   ```bash
-   npx prisma db push
-   ```
-
-4. **Eksekusi Seeding Data Awal Cafe**:
-   ```bash
-   npx prisma db seed
-   ```
-
-5. **Jalankan Server Pengembangan**:
-   ```bash
-   npm run dev
-   ```
-   Buka peramban di `http://localhost:3000`.
-
-6. **Kompilasi Build Produksi**:
-   ```bash
-   npm run build
-   npm run start
-   ```
-
----
-
-## 8. Panduan Pengujian & Simulasi Midtrans
-
-Saat pengujian lokal di lingkungan sandbox tanpa reverse proxy / ngrok:
-1. Buka terminal POS di `/pos`.
-2. Masukkan item menu ke keranjang belanja kasir.
-3. Klik **"Proses Pembayaran"**.
-4. Pada tab **QRIS / Midtrans**, kasir dapat menggunakan tombol **"Simulasi Bayar QRIS Berhasil"** untuk menyimulasikan notifikasi status `SETTLEMENT` dari gateway.
-5. Pesanan akan langsung berubah status menjadi `PAID`, record `Transaction` tercatat, dan dialog struk thermal 80mm siap dicetak.
-
----
-
-## 9. Troubleshooting
-
-- **Error koneksi pooler database**: Pastikan password Supabase yang mengandung karakter khusus telah di-URL-encode dan port direct connection `5432` dapat dijangkau.
-- **Session Expired**: Bersihkan cookie peramban `praz_space_session` dan login kembali via `/login`.
-- **Prisma Client Missing**: Jalankan `npx prisma generate` untuk meregenerasi tipe TypeScript.
-
----
-
-© 2026 Praz Space. Hak cipta dilindungi undang-undang.
+<p align="center">
+  Dibuat dengan ❤️ untuk <strong>Praz Space Cafe</strong>.<br>
+  © 2026 Praz Space. Seluruh hak cipta dilindungi.
+</p>
